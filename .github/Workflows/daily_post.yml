@@ -1,0 +1,47 @@
+# This is the GitHub Actions file.
+# It tells GitHub to run your script on a schedule.
+# You MUST create a folder named ".github" and inside it,
+# a folder named "workflows". Then, place this file inside.
+#
+# Filepath: .github/workflows/daily_post.yml
+
+name: Daily Boss Poster
+
+on:
+  # This allows you to run the job manually from the "Actions" tab
+  workflow_dispatch:
+
+  # This runs the job on a schedule (cron)
+  # This is set for 8:00 UTC every day.
+  # You can change '0 8 * * *' to your preferred time.
+  # Use a cron calculator: https://crontab.guru/
+  schedule:
+    - cron: '0 8 * * *'
+
+jobs:
+  post-boss-list:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checks out your repository's code
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # 2. Sets up a Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 3. Installs the required Python libraries
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      # 4. Runs your Python script
+      - name: Run Python script
+        env:
+          # This line securely passes your Discord Webhook URL
+          # (which you'll save as a "Secret") into the script.
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python boss_poster.py
