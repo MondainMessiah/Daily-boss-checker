@@ -9,9 +9,7 @@ from discord_webhook import DiscordWebhook, DiscordEmbed
 import os
 import sys
 
-# --- THIS IS THE CORRECTED URL ---
-# This is the main boss page. It will scrape whatever server
-# the site shows by default, as we cannot set a server.
+# This is the main boss page.
 BOSS_TRACKER_URL = "https://www.exevopan.com/bosses"
 
 def scrape_top_bosses():
@@ -21,8 +19,6 @@ def scrape_top_bosses():
     """
     print(f"Attempting to scrape boss data from: {BOSS_TRACKER_URL}")
     
-    # These headers make our request look like it's from a real browser
-    # to avoid a "403 Forbidden" error.
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -33,78 +29,34 @@ def scrape_top_bosses():
     try:
         session = requests.Session()
         response = session.get(BOSS_TRACKER_URL, headers=headers)
-        
-        # Check if the request was successful
         response.raise_for_status()
 
+        # --- !!! DEBUGGING STEP !!! ---
+        # We are printing the start of the HTML to see its structure.
+        html_content = response.text
+        print("--- START OF HTML ---")
+        print(html_content[:2000]) # Print the first 2000 chars
+        print("--- END OF HTML ---")
+        
+        # We will intentionally stop here for debugging.
+        return None, "DEBUG: Printed HTML snippet to log. Check GitHub Actions."
+        
+        # --- The old logic (which failed) is below ---
+        
         soup = BeautifulSoup(response.text, 'html.parser')
         bosses_data = []
-
-        # --- IMPORTANT (EXEVO PAN LOGIC) ---
-        # This logic finds all bosses listed on the page.
-        # It looks for <article> tags...
         boss_articles = soup.find_all('article')
         
         if not boss_articles:
             print("Error: Could not find any boss <article> elements. The HTML structure might have changed.")
             return None, "Error: Could not find boss data on Exevo Pan. The website's HTML structure may have changed."
 
-        for item in boss_articles:
-            # ...then finds the boss name (in an <a> tag)
-            boss_name_element = item.find('a')
-            # ...and the chance (in a <strong> tag)
-            chance_element = item.find('strong')
-
-            if boss_name_element and chance_element:
-                boss_name = boss_name_element.text.strip()
-                chance_text = chance_element.text.strip()
-                
-                # Check if the text is a percentage
-                if chance_text.endswith('%'):
-                    try:
-                        # Remove '%' and convert to float, then int
-                        chance_percent = int(float(chance_text.replace('%', '')))
-                        bosses_data.append((boss_name, chance_percent))
-                    except ValueError:
-                        # This skips any 'strong' tags that aren't percentages
-                        continue
-
-        if not bosses_data:
-            print("Error: Found boss articles, but couldn't parse name/chance.")
-            return None, "Error: Found boss articles but couldn't parse name/chance. Bot needs updating."
-
-        # Sort bosses by chance (highest first) and take top 5
-        bosses_data.sort(key=lambda x: x[1], reverse=True)
-        top_5_bosses = bosses_data[:5]
-        
-        if not top_5_bosses:
-             print("Error: Parsed bosses but top 5 list is empty.")
-             return None, "Error: Parsed bosses but top 5 list is empty."
-
-        # --- Create the Discord Embed ---
-        # Note: We can't guarantee this is Celesta, so the title is more generic.
-        embed = DiscordEmbed(title='📅 Daily Boss Hunter Report', color='00e676') # Green color
-        embed.set_url(BOSS_TRACKER_URL)
-        embed.set_description("Here are the top 5 bosses with the highest spawn chance from the default server:")
-
-        description_text = ""
-        for i, (name, chance) in enumerate(top_5_bosses, 1):
-            emoji = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "•"
-            description_text += f"{emoji} **{name}**: {chance}%\n"
-        
-        embed.add_embed_field(name='Top 5 Chances', value=description_text)
-        embed.set_footer(text='Data from ExevoPan.com')
-        embed.set_timestamp()
-
-        print("Successfully scraped and formatted boss data from Exevo Pan.")
-        return embed, None
+        # ... (rest of the parsing logic) ...
 
     except requests.exceptions.HTTPError as http_err:
-        # Specifically catch HTTP errors (like 403 or 404)
         print(f"HTTP error occurred: {http_err}")
         return None, f"An error occurred while processing boss data: {http_err}. The site may be blocking the bot."
     except Exception as e:
-        # Catch all other errors
         print(f"An unexpected error occurred: {e}")
         return None, f"An unexpected error occurred: {e}."
 
@@ -114,15 +66,13 @@ def send_discord_message(webhook_url, embed, error_message=None):
     """
     if not webhook_url:
         print("Error: DISCORD_WEBHOOK_URL is not set.")
-        sys.exit(1) # Exit with an error code
+        sys.exit(1)
 
     webhook = DiscordWebhook(url=webhook_url)
 
     if error_message:
-        # Send a plain text error
         webhook.content = f"Bot Error: {error_message}"
     elif embed:
-        # Add the embed to the webhook
         webhook.add_embed(embed)
 
     try:
@@ -136,7 +86,6 @@ def send_discord_message(webhook_url, embed, error_message=None):
 
 # --- Main execution ---
 if __name__ == "__main__":
-    # Get the Webhook URL from the GitHub Actions "Secrets"
     webhook_url = os.environ.get('DISCORD_WEBHOOK_URL')
     
     if not webhook_url:
