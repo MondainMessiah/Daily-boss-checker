@@ -1,7 +1,8 @@
 # Description:
-# This script scrapes the Exevo Pan boss tracker and posts the top 5
-# bosses to a Discord channel using a Webhook.
-# It's designed to be run by a scheduler like GitHub Actions.
+# DEBUGGING SCRIPT (Phase 2)
+# This script attempts to get readable HTML from Exevo Pan.
+# It has removed the 'Accept-Encoding' header to ask for
+# uncompressed data.
 
 import requests
 from bs4 import BeautifulSoup
@@ -14,16 +15,17 @@ BOSS_TRACKER_URL = "https://www.exevopan.com/bosses"
 
 def scrape_top_bosses():
     """
-    Scrapes the Exevo Pan boss tracker to find the top 5 bosses
-    by spawn chance. Returns a formatted Discord embed.
+    Attempts to scrape the Exevo Pan boss tracker.
+    Currently in DEBUG mode.
     """
     print(f"Attempting to scrape boss data from: {BOSS_TRACKER_URL}")
     
+    # --- NEW HEADERS ---
+    # We have REMOVED 'Accept-Encoding' to request plain text.
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
     }
 
     try:
@@ -34,25 +36,13 @@ def scrape_top_bosses():
         # --- !!! DEBUGGING STEP !!! ---
         # We are printing the start of the HTML to see its structure.
         html_content = response.text
-        print("--- START OF HTML ---")
+        print("--- START OF HTML (UNCOMPRESSED) ---")
         print(html_content[:2000]) # Print the first 2000 chars
-        print("--- END OF HTML ---")
+        print("--- END OF HTML (UNCOMPRESSED) ---")
         
         # We will intentionally stop here for debugging.
         return None, "DEBUG: Printed HTML snippet to log. Check GitHub Actions."
         
-        # --- The old logic (which failed) is below ---
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        bosses_data = []
-        boss_articles = soup.find_all('article')
-        
-        if not boss_articles:
-            print("Error: Could not find any boss <article> elements. The HTML structure might have changed.")
-            return None, "Error: Could not find boss data on Exevo Pan. The website's HTML structure may have changed."
-
-        # ... (rest of the parsing logic) ...
-
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
         return None, f"An error occurred while processing boss data: {http_err}. The site may be blocking the bot."
