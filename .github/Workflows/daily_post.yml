@@ -1,7 +1,5 @@
 # This is the GitHub Actions file.
 # It tells GitHub to run your script on a schedule.
-# You MUST create a folder named ".github" and inside it,
-# a folder named "workflows". Then, place this file inside.
 #
 # Filepath: .github/workflows/daily_post.yml
 
@@ -12,11 +10,10 @@ on:
   workflow_dispatch:
 
   # This runs the job on a schedule (cron)
-  # This is set for 8:00 UTC every day.
-  # You can change '0 8 * * *' to your preferred time.
-  # Use a cron calculator: https://crontab.guru/
+  # This is set for 10:00 UTC every day.
+  # (10:00 AM UK time during winter/GMT)
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '0 10 * * *'
 
 jobs:
   post-boss-list:
