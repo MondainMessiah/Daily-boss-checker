@@ -1,6 +1,6 @@
 # Description:
-# This script scrapes the Exevo Pan boss tracker for "Celesta"
-# and posts the top 5 bosses to a Discord channel using a Webhook.
+# This script scrapes the Exevo Pan boss tracker and posts the top 5
+# bosses to a Discord channel using a Webhook.
 # It's designed to be run by a scheduler like GitHub Actions.
 
 import requests
@@ -10,7 +10,9 @@ import os
 import sys
 
 # --- THIS IS THE CORRECTED URL ---
-BOSS_TRACKER_URL = "https://www.exevopan.com/bosses/celesta"
+# This is the main boss page. It will scrape whatever server
+# the site shows by default, as we cannot set a server.
+BOSS_TRACKER_URL = "https://www.exevopan.com/bosses"
 
 def scrape_top_bosses():
     """
@@ -38,12 +40,9 @@ def scrape_top_bosses():
         soup = BeautifulSoup(response.text, 'html.parser')
         bosses_data = []
 
-        # --- IMPORTANT (NEW EXEVO PAN LOGIC) ---
-        # This is a guess at the Exevo Pan HTML structure.
-        # It assumes each boss is in an <article> tag.
-        # It looks for a <strong> tag with a '%' and an <a> tag
-        # (which holds the name) inside each article.
-        
+        # --- IMPORTANT (EXEVO PAN LOGIC) ---
+        # This logic finds all bosses listed on the page.
+        # It looks for <article> tags...
         boss_articles = soup.find_all('article')
         
         if not boss_articles:
@@ -51,9 +50,9 @@ def scrape_top_bosses():
             return None, "Error: Could not find boss data on Exevo Pan. The website's HTML structure may have changed."
 
         for item in boss_articles:
-            # Find the boss name, which is usually a link
+            # ...then finds the boss name (in an <a> tag)
             boss_name_element = item.find('a')
-            # Find the chance, which is usually in a <strong> tag
+            # ...and the chance (in a <strong> tag)
             chance_element = item.find('strong')
 
             if boss_name_element and chance_element:
@@ -83,9 +82,10 @@ def scrape_top_bosses():
              return None, "Error: Parsed bosses but top 5 list is empty."
 
         # --- Create the Discord Embed ---
-        embed = DiscordEmbed(title='📅 Daily Boss Hunter Report (Celesta)', color='00e676') # Green color
+        # Note: We can't guarantee this is Celesta, so the title is more generic.
+        embed = DiscordEmbed(title='📅 Daily Boss Hunter Report', color='00e676') # Green color
         embed.set_url(BOSS_TRACKER_URL)
-        embed.set_description("Here are the top 5 bosses with the highest spawn chance today:")
+        embed.set_description("Here are the top 5 bosses with the highest spawn chance from the default server:")
 
         description_text = ""
         for i, (name, chance) in enumerate(top_5_bosses, 1):
@@ -100,7 +100,7 @@ def scrape_top_bosses():
         return embed, None
 
     except requests.exceptions.HTTPError as http_err:
-        # Specifically catch HTTP errors (like 403)
+        # Specifically catch HTTP errors (like 403 or 404)
         print(f"HTTP error occurred: {http_err}")
         return None, f"An error occurred while processing boss data: {http_err}. The site may be blocking the bot."
     except Exception as e:
